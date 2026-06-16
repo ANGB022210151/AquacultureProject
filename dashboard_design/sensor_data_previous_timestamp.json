@@ -1,0 +1,58 @@
+[
+    {
+        "time": "Wed May 06 2026 21:15:00 GMT+0800 (Malaysia Time)",
+        "Temperature (\u00b0C)": 30.375,
+        "Time Dissolve Solid (ppm)": 143.3003,
+        "Turbidity (NTU)": 10,
+        "pH": 11.05584
+    },
+    {
+        "time": "Wed May 06 2026 21:30:00 GMT+0800 (Malaysia Time)",
+        "Temperature (\u00b0C)": 30.375,
+        "Time Dissolve Solid (ppm)": 143.3003,
+        "Turbidity (NTU)": 10,
+        "pH": 11.05584
+    },
+    {
+        "time": "Wed May 06 2026 21:45:00 GMT+0800 (Malaysia Time)",
+        "Temperature (\u00b0C)": 30.375,
+        "Time Dissolve Solid (ppm)": 143.3003,
+        "Turbidity (NTU)": 10,
+        "pH": 11.05584
+    },
+    {
+        "time": "Wed May 06 2026 22:00:00 GMT+0800 (Malaysia Time)",
+        "Temperature (\u00b0C)": 30.375,
+        "Time Dissolve Solid (ppm)": 143.3003,
+        "Turbidity (NTU)": 10,
+        "pH": 11.05584
+    },
+    {
+        "time": "Wed May 06 2026 22:15:00 GMT+0800 (Malaysia Time)",
+        "Temperature (\u00b0C)": 30.375,
+        "Time Dissolve Solid (ppm)": 143.3003,
+        "Turbidity (NTU)": 10,
+        "pH": 11.05584
+    },
+    {
+        "time": "Wed May 06 2026 22:30:00 GMT+0800 (Malaysia Time)",
+        "Temperature (\u00b0C)": 30.375,
+        "Time Dissolve Solid (ppm)": 143.3003,
+        "Turbidity (NTU)": 10,
+        "pH": 11.05584
+    },
+    {
+        "time": "Wed May 06 2026 22:45:00 GMT+0800 (Malaysia Time)",
+        "Temperature (\u00b0C)": 30.375,
+        "Time Dissolve Solid (ppm)": 143.3003,
+        "Turbidity (NTU)": 10,
+        "pH": 11.05584
+    },
+    {
+        "time": "Wed May 06 2026 23:00:00 GMT+0800 (Malaysia Time)",
+        "Temperature (\u00b0C)": 30.375,
+        "Time Dissolve Solid (ppm)": 143.3003,
+        "Turbidity (NTU)": 10,
+        "pH": 11.05584
+    }
+]

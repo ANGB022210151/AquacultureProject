@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Aquaculture Dashboard - Multi-Site</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --border-color: #e0e0e0;
+            --header-color: #1a3a5f;
+            --safe-green: #2ecc71;
+            --warning-yellow: #f1c40f;
+            --critical-red: #e74c3c;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg-color); margin: 0; color: #333; }
+        
+        header {
+            background: var(--header-color);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .site-dropdown {
+            background: #2c5282;
+            color: white;
+            border: 1px solid #4a5568;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .container { padding: 20px; max-width: 1400px; margin: auto; }
+
+        /* XGBoost Status Banner */
+        #fault-banner {
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        /* Gauge Grid */
+        .gauge-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .gauge-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .sensor-val { font-size: 2.2rem; font-weight: 800; display: block; margin: 10px 0; }
+        .sensor-label { font-size: 0.85rem; color: #718096; font-weight: bold; }
+
+        /* Chart Section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .chart-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        canvas { max-height: 280px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h2 style="margin:0;">Aquaculture Intelligence</h2>
+            <small>Integrated Fault Detection & Predictive Maintenance</small>
+        </div>
+        <select class="site-dropdown" id="siteSelect" onchange="mapSiteData()">
+            <option value="site1">Site 1</option>
+            <option value="site2">Site 2</option>
+        </select>
+    </header>
+
+    <div class="container">
+        <div id="fault-banner">System Analyzing...</div>
+        <div id="refresh-status" style="margin-bottom: 20px; font-size: 0.95rem; color: #2c3e50;">Waiting for first refresh...</div>
+
+        <section class="gauge-row">
+            <div class="gauge-card">
+                <span class="sensor-label">TEMPERATURE</span>
+                <span class="sensor-val" id="temp-val">--</span>
+                <div id="temp-status">--</div>
+            </div>
+            <div class="gauge-card">
+                <span class="sensor-label">PH LEVEL</span>
+                <span class="sensor-val" id="ph-val">--</span>
+                <div id="ph-status">--</div>
+            </div>
+            <div class="gauge-card">
+                <span class="sensor-label">TURBIDITY</span>
+                <span class="sensor-val" id="turb-val">--</span>
+                <div id="turb-status">--</div>
+            </div>
+            <div class="gauge-card">
+                <span class="sensor-label">TDS</span>
+                <span class="sensor-val" id="tds-val">--</span>
+                <div id="tds-status">--</div>
+            </div>
+        </section>
+
+        <section class="charts-grid">
+            <div class="chart-card">
+                <h3>pH Level Trend</h3>
+                <canvas id="phChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Temperature Trend</h3>
+                <canvas id="tempChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Turbidity Trend</h3>
+                <canvas id="turbChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>TDS Trend</h3>
+                <canvas id="tdsChart"></canvas>
+            </div>
+            <div class="chart-card" style="grid-column: 1 / -1;">
+                <h3>Maintenance Insight Log</h3>
+                <div id="log-content" style="font-family: monospace; height: 200px; overflow-y: auto;"></div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Keep your site definitions as fallback mockups
+        const sites = {
+            site1: {
+                name: "Site 1: North Pond",
+                temp: 26.8, ph: 7.2, turb: 4.5, tds: 420,
+                faultLabel: "NORMAL OPERATION",
+                faultColor: "#2ecc71",
+                ph_history: [7.0, 7.1, 7.2, 7.2, 7.2, 7.2, 7.2, 7.2],
+                temp_history: [24.5, 25.0, 25.5, 26.0, 26.3, 26.5, 26.7, 26.8],
+                turb_history: [3.2, 3.5, 4.0, 4.2, 4.3, 4.4, 4.45, 4.5],
+                tds_history: [400, 405, 410, 415, 418, 419, 419.5, 420],
+                timestamps: ['14:00', '14:15', '14:30', '14:45', '15:00', '15:15', '15:30', '15:45'],
+                ph_forecast: [7.3, 7.4],
+                temp_forecast: [27.0, 27.2],
+                turb_forecast: [4.6, 4.7],
+                tds_forecast: [425, 428],
+                log: ""
+            },
+            site2: {
+                name: "Site 2: South Pond",
+                temp: 31.2, ph: 8.9, turb: 18.2, tds: 950,
+                faultLabel: "CRITICAL: Aeration Inefficiency",
+                faultColor: "#e74c3c",
+                ph_history: [8.1, 8.3, 8.5, 8.7, 8.8, 8.85, 8.87, 8.9],
+                temp_history: [28.5, 29.0, 29.5, 30.0, 30.5, 30.8, 31.0, 31.2],
+                turb_history: [12.0, 13.5, 14.5, 15.5, 16.5, 17.2, 17.8, 18.2],
+                tds_history: [850, 880, 900, 920, 935, 945, 948, 950],
+                timestamps: ['14:00', '14:15', '14:30', '14:45', '15:00', '15:15', '15:30', '15:45'],
+                ph_forecast: [9.1, 9.3],
+                temp_forecast: [31.5, 31.8],
+                turb_forecast: [18.5, 19.0],
+                tds_forecast: [960, 970],
+                //log: "10:32 - WARNING: pH rising rapidly. LSTM predicts failure in 25 mins. Check Aerator."
+            }
+        };
+
+        let activeCharts = {};
+
+        async function initDashboard() {
+            try {
+                const response = await fetch(`sensor_data_previous_timestamp.json?t=${Date.now()}`);
+                const realData = await response.json();
+                
+                if (realData && realData.length > 0) {
+                    const latest = realData[realData.length - 1];
+                    
+                    // CORRECTED MAPPING: Use bracket notation for names with spaces/symbols
+                    const latestTemp = latest['Temperature (°C)'] || 0;
+                    const latestPh = latest['pH'] || 0;
+                    const latestTurb = latest['Turbidity (NTU)'] || 0;
+                    const latestTds = latest['Time Dissolve Solid (ppm)'] || 0;
+                    
+                    sites.site1.temp = latestTemp;
+                    sites.site1.ph = latestPh;
+                    sites.site1.turb = latestTurb;
+                    sites.site1.tds = latestTds;
+                    sites.site2.temp = latestTemp;
+                    sites.site2.ph = latestPh;
+                    sites.site2.turb = latestTurb;
+                    sites.site2.tds = latestTds;
+                    
+                    // Extract timestamps and convert to HH:MM format (column name is 'time' lowercase)
+                    const formattedTimestamps = realData.map((row, index) => {
+                        // Try multiple possible column names for time
+                        const timeStr = row['time'] || row['Time'] || row['timestamp'] || row['Timestamp'] || '';
+                        if (!timeStr) {
+                            console.log(`Row ${index} has no time value`, Object.keys(row));
+                            return `--:--`;
+                        }
+                        try {
+                            const date = new Date(timeStr);
+                            const timestamp = date.getTime();
+                            if (isNaN(timestamp)) {
+                                console.log(`Invalid date for row ${index}: ${timeStr}`);
+                                return `--:--`;
+                            }
+                            const hours = String(date.getHours()).padStart(2, '0');
+                            const mins = String(date.getMinutes()).padStart(2, '0');
+                            const result = `${hours}:${mins}`;
+                            return result;
+                        } catch (e) {
+                            console.log(`Error parsing time for row ${index}:`, e);
+                            return `--:--`;
+                        }
+                    });
+                    sites.site1.timestamps = formattedTimestamps;
+                    sites.site2.timestamps = formattedTimestamps;
+                    
+                    // Update history mappings for all charts
+                    const historyPh = realData.map(row => row['pH'] || 0);
+                    const historyTemp = realData.map(row => row['Temperature (°C)'] || 0);
+                    const historyTurb = realData.map(row => row['Turbidity (NTU)'] || 0);
+                    const historyTds = realData.map(row => row['Time Dissolve Solid (ppm)'] || 0);
+                    
+                    sites.site1.ph_history = historyPh;
+                    sites.site1.temp_history = historyTemp;
+                    sites.site1.turb_history = historyTurb;
+                    sites.site1.tds_history = historyTds;
+                    sites.site2.ph_history = historyPh;
+                    sites.site2.temp_history = historyTemp;
+                    sites.site2.turb_history = historyTurb;
+                    sites.site2.tds_history = historyTds;
+                    
+                    // Use the LSTM prediction payload to update site1 forecasts and fault status
+                    try {
+                        const predictionResponse = await fetch(`prediction.json?t=${Date.now()}`);
+                        const prediction = await predictionResponse.json();
+                        if (prediction) {
+                            const faults = Array.isArray(prediction.xgboost_predicted_faults)
+                                ? prediction.xgboost_predicted_faults
+                                : [prediction.xgboost_predicted_faults];
+                            const faultLabel = faults.join(', ');
+                            sites.site1.faultLabel = faultLabel || 'Normal';
+                            sites.site1.faultColor = faultLabel && faultLabel !== 'Normal' && !faultLabel.toLowerCase().includes('normal')
+                                ? '#e74c3c'
+                                : '#2ecc71';
+                            
+                            const lstmFaults = Array.isArray(prediction.lstm_predicted_faults)
+                                ? prediction.lstm_predicted_faults
+                                : [prediction.lstm_predicted_faults];
+                            sites.site1.log = `LSTM predicted faults: ${lstmFaults.join(', ')}`;
+                            if (faultLabel && faultLabel !== 'Normal' && !faultLabel.toLowerCase().includes('normal')) {
+                                sites.site1.log += ` | Faults: ${faultLabel}`;
+                            }
+
+                            const lstmForecast = prediction.lstm_forecast || {};
+                            sites.site1.ph_forecast = [sites.site1.ph, lstmForecast.pH ?? sites.site1.ph_forecast[1]];
+                            sites.site1.temp_forecast = [sites.site1.temp, lstmForecast.temperature ?? sites.site1.temp_forecast[1]];
+                            sites.site1.turb_forecast = [sites.site1.turb, lstmForecast.turbidity ?? sites.site1.turb_forecast[1]];
+                            sites.site1.tds_forecast = [sites.site1.tds, lstmForecast.tds ?? sites.site1.tds_forecast[1]];
+                            sites.site2.ph_forecast = sites.site1.ph_forecast;
+                            sites.site2.temp_forecast = sites.site1.temp_forecast;
+                            sites.site2.turb_forecast = sites.site1.turb_forecast;
+                            sites.site2.tds_forecast = sites.site1.tds_forecast;
+                        }
+                    } catch (predictionErr) {
+                        console.warn('Unable to load prediction.json:', predictionErr);
+                    }
+                }
+            } catch (err) {
+                console.error("Fetch error:", err);
+            }
+            mapSiteData();
+        }
+
+        function updateChart(data, chartId, historyKey, forecastKey, label, color) {
+            const ctx = document.getElementById(chartId).getContext('2d');
+            if (activeCharts[chartId]) activeCharts[chartId].destroy();
+
+            const history = data[historyKey] || [];
+            const forecast = data[forecastKey] || [];
+            const timestamps = data.timestamps || [];
+            
+            // Get the last timestamp and calculate future times
+            let lastTime = new Date();
+            if (timestamps.length > 0) {
+                const lastTimeStr = timestamps[timestamps.length - 1];
+                const [hours, mins] = lastTimeStr.split(':');
+                lastTime = new Date();
+                lastTime.setHours(parseInt(hours), parseInt(mins), 0);
+            }
+            
+            // Create forecast time labels (+15 mins, +30 mins)
+            const time15 = new Date(lastTime.getTime() + 15 * 60000);
+            const time30 = new Date(lastTime.getTime() + 30 * 60000);
+            
+            const formatTime = (date) => {
+                const h = String(date.getHours()).padStart(2, '0');
+                const m = String(date.getMinutes()).padStart(2, '0');
+                return `${h}:${m}`;
+            };
+            
+            const forecastLabels = [formatTime(time15), formatTime(time30)];
+            
+            // Combine labels: historical timestamps + forecast times
+            const allLabels = [...timestamps, ...forecastLabels];
+            
+            // Prepare data arrays with nulls for proper spacing
+            // Connect forecast line from last historical value to 30 min, leaving the 15 min point empty
+            const historicalData = [...history, null, null];
+            const forecastData = [
+                ...new Array(history.length - 1).fill(null),
+                history[history.length - 1],
+                null,
+                forecast[1] !== undefined ? forecast[1] : null
+            ];
+            
+            activeCharts[chartId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: allLabels,
+                    datasets: [
+                        {
+                            label: `${label} (Historical)`,
+                            data: historicalData,
+                            borderColor: color,
+                            backgroundColor: color + '20',
+                            tension: 0.3,
+                            fill: true,
+                            borderWidth: 2
+                        },
+                        {
+                            label: `${label} (Forecast)`,
+                            data: forecastData,
+                            borderColor: color,
+                            backgroundColor: color + '20',
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            fill: false,
+                            spanGaps: true,
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function mapSiteData() {
+            const selected = document.getElementById('siteSelect').value;
+            const data = sites[selected];
+
+            document.getElementById('temp-val').innerText = data.temp + "°C";
+            document.getElementById('ph-val').innerText = data.ph;
+            document.getElementById('turb-val').innerText = data.turb + " NTU";
+            document.getElementById('tds-val').innerText = data.tds + " ppm";
+
+            const banner = document.getElementById('fault-banner');
+            banner.innerText = "XGBoost Classification: " + data.faultLabel;
+            banner.style.backgroundColor = data.faultColor;
+            banner.style.color = "white";
+
+            const logBox = document.getElementById('log-content');
+            if (logBox) {
+                logBox.innerHTML = `<div>${data.log}</div>` + logBox.innerHTML;
+            }
+            
+            // Update all four charts with timestamps and forecast data
+            updateChart(data, 'phChart', 'ph_history', 'ph_forecast', 'pH Level', '#3498db');
+            updateChart(data, 'tempChart', 'temp_history', 'temp_forecast', 'Temperature (°C)', '#e74c3c');
+            updateChart(data, 'turbChart', 'turb_history', 'turb_forecast', 'Turbidity (NTU)', '#f39c12');
+            updateChart(data, 'tdsChart', 'tds_history', 'tds_forecast', 'TDS (ppm)', '#9b59b6');
+            
+            updateTimestamp();
+        }
+
+        // Function to handle the timing logic
+        function startAutoRefresh() {
+            // Initial call to load data immediately
+            initDashboard();
+            startRefreshCountdown(60);
+
+            // Set an interval to run every 60 seconds
+            const interval = 1 * 60 * 1000;
+            
+            setInterval(() => {
+                console.log("Refreshing data...");
+                initDashboard();
+                startRefreshCountdown(60);
+            }, interval);
+        }
+
+        // Optional: Modify your mapSiteData to show a "Last Refreshed" time
+        // Add an element with id="last-update" in your HTML to use this
+        function updateTimestamp() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            const statusLog = document.getElementById('log-content');
+            const refreshStatus = document.getElementById('refresh-status');
+
+            if (refreshStatus) {
+                refreshStatus.innerText = `Last refreshed at ${timeString}. Next refresh in 60 seconds.`;
+            }
+
+            if (statusLog) {
+                statusLog.innerHTML += `<div style="color: #2ecc71;">🔄 Dashboard auto-refreshed at ${timeString}</div>`;
+            }
+        }
+
+        let countdownTimerId = null;
+
+        function startRefreshCountdown(seconds) {
+            const refreshStatus = document.getElementById('refresh-status');
+            let remaining = seconds;
+            const refreshedAt = new Date().toLocaleTimeString();
+
+            if (countdownTimerId) {
+                clearInterval(countdownTimerId);
+            }
+
+            if (refreshStatus) {
+                refreshStatus.innerText = `Last refreshed at ${refreshedAt}. Next refresh in ${remaining} seconds.`;
+            }
+
+            countdownTimerId = setInterval(() => {
+                remaining -= 1;
+                if (refreshStatus) {
+                    refreshStatus.innerText = `Last refreshed at ${refreshedAt}. Next refresh in ${remaining} seconds.`;
+                }
+                if (remaining <= 0) {
+                    clearInterval(countdownTimerId);
+                }
+            }, 1000);
+        }
+
+        // Update the onload trigger
+        window.addEventListener('load', startAutoRefresh);
+    </script>
+</body>
+</html>

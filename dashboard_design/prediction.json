@@ -1,0 +1,15 @@
+{
+    "timestamp": "20260506230615",
+    "xgboost_predicted_faults": [
+        "Pump Degradation"
+    ],
+    "lstm_forecast": {
+        "temperature": 26.56981658935547,
+        "tds": 225.87307739257812,
+        "turbidity": 0.47213783860206604,
+        "pH": 8.390271186828613
+    },
+    "lstm_predicted_faults": [
+        "Normal"
+    ]
+}
