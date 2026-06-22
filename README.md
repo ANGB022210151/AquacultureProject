@@ -4,7 +4,7 @@ A comprehensive machine learning solution for detecting faults and predicting ma
 
 ## Overview
 
-This project implements an advanced fault detection and predictive maintenance system specifically designed for aquaculture operations. It combines sequential machine learning pipeline execution with real-time monitoring capabilities.
+This project implements an advanced fault detection and predictive maintenance system specifically designed for aquaculture operations. It combines sequential machine learning pipeline execution with a real-time web-based monitoring dashboard providing live fault detection and predictive maintenance capabilities.
 
 ## Key Components
 
@@ -31,11 +31,16 @@ AquacultureProject/
 │   ├── XGBoost_step5.ipynb                   # Step 5: XGBoost Classification
 │   └── step_6_lstmi.ipynb                    # Step 6: LSTM Time Series Analysis
 │
-├── dashboard/                          # Live Monitoring Dashboard
-│   ├── app.py                         # Dashboard application
-│   ├── templates/                     # HTML templates
-│   ├── static/                        # CSS, JavaScript, assets
-│   └── config.py                      # Configuration settings
+├── dashboard_design/                   # Live Monitoring Dashboard Application
+│   ├── main.py                        # Dashboard automation & data pipeline orchestration
+│   ├── main.html                      # Interactive web dashboard UI
+│   ├── data_cleaning_and_inference_model.py  # Data cleaning and ML inference engine
+│   ├── final_merge.py                 # Data merging and sorting utility
+│   ├── merge.py                       # CSV file merging
+│   ├── models/                        # Directory for trained models
+│   ├── Combined/                      # Cumulative sensor data storage
+│   ├── output/                        # Processed sensor data output
+│   └── sensor_data_*.json             # Real-time sensor data files
 │
 ├── models/                             # Trained Models
 │   ├── fault_detection_model.pkl      # Serialized model
@@ -106,26 +111,232 @@ The pipeline must be executed **sequentially** to ensure proper data processing 
 
 ## Live Monitoring Dashboard
 
-**Location**: `dashboard/`
+**Location**: `dashboard_design/`
 
-The dashboard provides real-time monitoring and predictive maintenance capabilities:
+The dashboard provides real-time monitoring and predictive maintenance capabilities through an integrated web application and data pipeline orchestration system.
 
-### Features
+### Architecture Overview
 
-- **Real-time Fault Detection**: Continuous monitoring of aquaculture system health
-- **Predictive Alerts**: Proactive maintenance warnings before system failures
-- **System Metrics**: Live sensor data visualization
-- **Fault History**: Historical fault logs and patterns
-- **Maintenance Schedule**: Recommended maintenance timing and actions
-- **System Status**: Overall health indicators and risk assessment
+The dashboard system consists of three integrated layers:
 
-### Dashboard Access
+1. **Data Pipeline Layer** (`main.py`)
+   - Automated data acquisition from Datacake cloud dashboard
+   - CSV export and automated download using Selenium WebDriver
+   - Headless browser support for cloud/container execution
+   - Duplicate file cleanup and management
+   - Azure Blob Storage integration for data backup
 
-```bash
-python dashboard/app.py
+2. **Processing Layer** (`data_cleaning_and_inference_model.py`, `final_merge.py`)
+   - Data cleaning and feature engineering
+   - XGBoost-based fault classification (9 classes)
+   - LSTM-based time series forecasting (30-minute predictions)
+   - Cascaded inference combining multiple ML models
+   - Real-time prediction output in JSON format
+
+3. **Visualization Layer** (`main.html`)
+   - Interactive web-based dashboard UI
+   - Real-time sensor data visualization
+   - Multi-site monitoring support
+   - Dynamic chart generation using Chart.js
+   - Automatic data refresh every 60 seconds
+
+### Dashboard Features
+
+#### Real-time Monitoring
+- **Live Sensor Gauges**: Current readings for Temperature, pH, Turbidity, and TDS (Total Dissolved Solids)
+- **Multi-Site Support**: Switch between different aquaculture sites
+- **System Health Status**: XGBoost classification results with color-coded alerts
+- **Auto-Refresh**: Dashboard automatically updates sensor data every 60 seconds
+
+#### Predictive Analytics
+- **XGBoost Fault Classification**: Identifies 9 different fault types:
+  - Aeration Inefficiency
+  - Filter Clogging
+  - Pump Degradation
+  - Temperature anomalies
+  - Turbidity anomalies
+  - TDS anomalies
+  - pH anomalies
+  - Unknown/Noise
+  - Normal operation
+
+- **LSTM Forecasting**: 30-minute ahead predictions for:
+  - Temperature trends
+  - pH level changes
+  - Turbidity projections
+  - TDS concentration forecasts
+
+#### Data Visualization
+- **Historical Trends**: 8-point historical sensor data with trend analysis
+- **Forecasted Values**: Dashed line projections showing predicted 30-minute future state
+- **Multi-Sensor Charts**: Separate visualizations for each sensor parameter
+- **Maintenance Log**: Real-time event log showing system status and alerts
+
+### Data Flow
+
+```
+Datacake Cloud Dashboard
+        ↓
+   main.py (Selenium Download)
+        ↓
+   Merge CSV Files (merge.py)
+        ↓
+   Final Merge & Sort (final_merge.py)
+        ↓
+   Combined/merged_sensor_data.csv
+        ↓
+   Data Cleaning (data_cleaning_and_inference_model.py)
+        ↓
+   ├─→ XGBoost Inference (Current State Classification)
+   │
+   └─→ LSTM Inference (30-Min Forecast + Future Classification)
+        ↓
+   prediction.json & sensor_data_current_timestamp.json
+        ↓
+   main.html (Web Dashboard Display)
 ```
 
-The dashboard will be available at `http://localhost:5000`
+### Dashboard Components
+
+#### Sensor Data Cards
+- Display current sensor values with real-time updates
+- Color-coded status indicators
+- Unit labels (°C, NTU, ppm, pH scale)
+
+#### Trend Charts
+- **pH Level Trend**: Historical and forecasted pH values
+- **Temperature Trend**: Thermal pattern analysis with predictions
+- **Turbidity Trend**: Water clarity monitoring and forecasting
+- **TDS Trend**: Dissolved solids concentration tracking
+
+#### System Status Banner
+- Large, prominent display of XGBoost classification result
+- Color-coded indicators:
+  - **Green (#2ecc71)**: Normal operation
+  - **Yellow (#f1c40f)**: Warning state
+  - **Red (#e74c3c)**: Critical alert
+
+#### Maintenance Log
+- Scrollable real-time log of system events
+- LSTM prediction confidence levels
+- Fault type notifications
+- Dashboard refresh timestamps
+
+### Running the Dashboard
+
+#### Prerequisites
+- Python 3.8 or higher
+- Chrome browser (for Selenium WebDriver)
+- Selenium and WebDriver dependencies
+- TensorFlow/Keras for LSTM models
+- XGBoost for classification
+- Pandas for data processing
+
+#### Quick Start
+
+1. **Install Dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+2. **Run the Automated Data Pipeline**
+```bash
+cd dashboard_design
+python main.py
+```
+
+Available command-line options:
+```bash
+python main.py --headless          # Run without showing browser
+python main.py --upload-to-blob    # Upload results to Azure Blob Storage
+```
+
+3. **Access the Dashboard**
+Open your web browser and navigate to the generated HTML file:
+```bash
+# After main.py completes successfully
+open dashboard_design/main.html
+# Or use your preferred browser to open: file:///path/to/dashboard_design/main.html
+```
+
+#### Automated Scheduling
+
+For continuous monitoring, schedule the automation with:
+
+**Windows (Task Scheduler):**
+```batch
+# Run main.py every hour
+schtasks /create /tn "AquacultureDashboard" /tr "python dashboard_design/main.py" /sc hourly
+```
+
+**Linux/Mac (Crontab):**
+```bash
+# Run every hour
+0 * * * * cd /path/to/AquacultureProject/dashboard_design && python main.py
+```
+
+### Data Files Reference
+
+| File | Purpose |
+|------|---------|
+| `main.py` | Orchestrates entire data pipeline, downloads data, runs inference |
+| `main.html` | Web dashboard - serves as the UI interface |
+| `data_cleaning_and_inference_model.py` | Handles data cleaning, feature engineering, XGBoost & LSTM inference |
+| `final_merge.py` | Merges new sensor data into cumulative dataset with time sorting |
+| `merge.py` | Initial CSV merger for sensor exports |
+| `models/` | Directory containing trained ML models (.joblib, .keras) |
+| `Combined/` | Cumulative historical sensor data merged over time |
+| `output/` | Current batch of processed sensor data |
+| `sensor_data_current_timestamp.json` | Latest 8 sensor readings (feeds dashboard) |
+| `sensor_data_previous_timestamp.json` | Previous 8 readings (detects new data) |
+| `prediction.json` | Current XGBoost + LSTM predictions |
+
+### Configuration
+
+Key settings in the dashboard application:
+
+```python
+# main.py configuration
+DASHBOARD_URL = "https://app.datacake.de/..."  # Datacake dashboard URL
+DOWNLOAD_DIR = os.path.dirname(os.path.abspath(__file__))
+WAIT_TIME = 10  # seconds to wait for page elements
+
+# data_cleaning_and_inference_model.py thresholds
+TEMP_RANGE = (20.0, 40.0)
+TDS_RANGE = (0.0, 1000)
+TURBIDITY_RANGE = (0.0, 900)
+PH_RANGE = (6.5, 9.5)
+
+# main.html refresh interval
+REFRESH_INTERVAL = 60  # seconds
+```
+
+### Troubleshooting Dashboard Issues
+
+#### Dashboard Not Updating
+- Check that `sensor_data_current_timestamp.json` exists and contains recent data
+- Verify `main.py` is running and completing successfully
+- Check browser console for JavaScript errors (F12)
+
+#### Prediction Failures
+- Ensure all trained model files exist in `models/` directory:
+  - `multi_label_xgboost_model.joblib`
+  - `predictive_maintenance_lstm.keras`
+  - `lstm_input_scaler.joblib`
+  - `lstm_target_scaler.joblib`
+- Verify data cleaning steps completed without errors
+- Check that input CSV contains all required sensor columns
+
+#### Download Automation Issues
+- Verify Datacake dashboard URL is accessible
+- Check that Chrome/Chromium is installed and accessible
+- For headless mode, ensure you're using `--headless=new` compatible Chrome version
+- Check browser driver logs for Selenium errors
+
+#### Azure Integration Issues
+- Verify `AZURE_STORAGE_CONNECTION_STRING` environment variable is set
+- Check Azure Blob Storage container exists
+- Ensure service principal has necessary permissions
 
 ## Installation & Setup
 
@@ -134,6 +345,7 @@ The dashboard will be available at `http://localhost:5000`
 - Python 3.8 or higher
 - Jupyter Notebook or JupyterLab
 - pip package manager
+- Chrome browser (for dashboard automation)
 
 ### 1. Clone Repository
 
@@ -172,11 +384,11 @@ jupyter notebook
 After completing the ML pipeline:
 
 ```bash
-cd dashboard
-python app.py
+cd dashboard_design
+python main.py
 ```
 
-Navigate to `http://localhost:5000` in your web browser to access the live monitoring dashboard.
+Open `main.html` in your web browser to access the live monitoring dashboard.
 
 ## Supervised Learning Algorithms
 
@@ -184,7 +396,7 @@ The project implements the following supervised and unsupervised learning approa
 
 - **Isolation Forest**: Unsupervised anomaly detection for fault identification
 - **DBSCAN**: Density-based clustering for fault pattern recognition
-- **XGBoost**: Gradient boosting classification for fault prediction
+- **XGBoost**: Gradient boosting classification for fault prediction (9 classes)
 - **LSTM**: Recurrent neural networks for temporal sequence analysis and predictive maintenance
 
 ## Data Requirements
@@ -204,19 +416,28 @@ Expected performance metrics:
 - **Maintenance Prediction Recall**: Target >90%
 - **False Positive Rate**: <5%
 - **Response Time**: Real-time alerts (<1 second)
+- **Dashboard Update Latency**: <2 seconds
 
 ## Configuration
 
-Key configuration options in `dashboard/config.py`:
+Key configuration options:
 
 ```python
-# Model settings
-MODEL_PATH = 'models/fault_detection_model.pkl'
-SCALER_PATH = 'models/scaler.pkl'
+# Dashboard refresh settings (main.html)
+REFRESH_INTERVAL = 60  # seconds
 
-# Dashboard settings
-REFRESH_INTERVAL = 5  # seconds
-ALERT_THRESHOLD = 0.7
+# Alert thresholds (data_cleaning_and_inference_model.py)
+TEMPERATURE_MIN = 20.0
+TEMPERATURE_MAX = 40.0
+TDS_MIN = 0.0
+TDS_MAX = 1000
+TURBIDITY_MIN = 0.0
+TURBIDITY_MAX = 900
+PH_MIN = 6.5
+PH_MAX = 9.5
+
+# Inference thresholds
+XGBOOST_PROBABILITY_THRESHOLD = 0.5
 ```
 
 ## Usage Examples
@@ -234,12 +455,17 @@ model.fit(X_train, y_train)
 ### Dashboard Integration Example
 
 ```python
-# In dashboard/app.py
-@app.route('/predict', methods=['POST'])
-def predict():
-    sensor_data = request.json
-    prediction = model.predict([sensor_data])
-    return jsonify({'fault_detected': prediction[0]})
+# In dashboard_design/data_cleaning_and_inference_model.py
+def xgboost_inference():
+    """Perform XGBoost inference on the last row"""
+    loaded_models = joblib.load('models/multi_label_xgboost_model.joblib')
+    inference_preds = np.zeros((1, len(classes)), dtype=int)
+    
+    for i, model in enumerate(loaded_models):
+        preds = (model.predict_proba(X_inference)[:, 1] > 0.5).astype(int)
+        inference_preds[0, i] = preds[-1]
+    
+    return labels
 ```
 
 ## Troubleshooting
@@ -255,6 +481,7 @@ def predict():
 - **Connection Errors**: Ensure the trained model exists in `models/` directory
 - **Prediction Failures**: Re-run the full pipeline to regenerate model files
 - **Performance Issues**: Check system resources and reduce data refresh interval
+- **Data Not Loading**: Verify sensor data files are in the correct format and location
 
 ## Contributing
 
@@ -273,13 +500,15 @@ Contributions are welcome! Please follow these guidelines:
 - **Document parameters** - Note all hyperparameter changes
 - **Validate predictions** - Compare dashboard predictions with actual outcomes
 - **Regular retraining** - Periodically retrain with new data
+- **Monitor system performance** - Track dashboard load times and prediction accuracy
 
 ## Performance Considerations
 
 - Pipeline execution time: ~30-60 minutes (depending on data size)
 - Dashboard memory usage: ~500MB-2GB
 - Real-time prediction latency: <1 second per sample
-- Dashboard refresh rate: 5 seconds (configurable)
+- Dashboard refresh rate: 60 seconds (configurable)
+- Selenium download automation: ~5-10 minutes per cycle
 
 ## Security
 
@@ -287,6 +516,7 @@ Contributions are welcome! Please follow these guidelines:
 - Use environment variables for sensitive configuration
 - Implement authentication for dashboard access in production
 - Regularly validate model predictions against ground truth
+- Secure Azure Blob Storage credentials with environment variables
 
 ## License
 
@@ -309,6 +539,8 @@ For issues, questions, or suggestions:
 - Real-time Monitoring System Design
 - XGBoost Documentation
 - LSTM and Recurrent Neural Networks for Time Series
+- Selenium WebDriver for Automated Testing
+- Chart.js for Data Visualization
 
 ## Author
 
