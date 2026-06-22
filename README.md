@@ -4,13 +4,13 @@ A comprehensive machine learning solution for detecting faults and predicting ma
 
 ## Overview
 
-This project implements an advanced fault detection and predictive maintenance system specifically designed for aquaculture operations. It combines sequential machine learning pipeline execution with a real-time live dashboard for monitoring system health and identifying potential failures before they occur.
+This project implements an advanced fault detection and predictive maintenance system specifically designed for aquaculture operations. It combines sequential machine learning pipeline execution with real-time monitoring capabilities.
 
 ## Key Components
 
 The project is structured into two main components:
 
-1. **Machine Learning Pipeline** - Sequential Jupyter Notebook execution (5 steps)
+1. **Machine Learning Pipeline** - Sequential Jupyter Notebook execution (6 steps)
 2. **Live Monitoring Dashboard** - Real-time fault detection and predictive maintenance interface
 
 ## Technology Stack
@@ -23,12 +23,13 @@ The project is structured into two main components:
 
 ```
 AquacultureProject/
-├── notebooks/                          # Machine Learning Pipeline
-│   ├── 01_data_collection.ipynb       # Step 1: Data Collection & Preparation
-│   ├── 02_exploratory_analysis.ipynb  # Step 2: Exploratory Data Analysis (EDA)
-│   ├── 03_feature_engineering.ipynb   # Step 3: Feature Engineering & Selection
-│   ├── 04_model_training.ipynb        # Step 4: Model Training & Validation
-│   └── 05_model_evaluation.ipynb      # Step 5: Model Evaluation & Optimization
+├── notebooks/                                  # Machine Learning Pipeline
+│   ├── Sensor_Fault_Labeling_Step1.ipynb     # Step 1: Sensor Fault Labeling
+│   ├── feature_engineering_Step2.ipynb       # Step 2: Feature Engineering
+│   ├── isolation_forest_Step3.ipynb          # Step 3: Isolation Forest Detection
+│   ├── dbscan_step4.ipynb                    # Step 4: DBSCAN Clustering Analysis
+│   ├── XGBoost_step5.ipynb                   # Step 5: XGBoost Classification
+│   └── step_6_lstmi.ipynb                    # Step 6: LSTM Time Series Analysis
 │
 ├── dashboard/                          # Live Monitoring Dashboard
 │   ├── app.py                         # Dashboard application
@@ -48,48 +49,59 @@ AquacultureProject/
 └── README.md                           # This file
 ```
 
-## Machine Learning Pipeline (5 Steps)
+## Machine Learning Pipeline (6 Steps)
 
 The pipeline must be executed **sequentially** to ensure proper data processing and model development:
 
-### Step 1: Data Collection & Preparation
-**File**: `notebooks/01_data_collection.ipynb`
+### Step 1: Sensor Fault Labeling
+**File**: `notebooks/Sensor_Fault_Labeling_Step1.ipynb`
 
 - Load sensor data from aquaculture systems
+- Label faulty and normal operating conditions
 - Data cleaning and preprocessing
 - Handle missing values and outliers
 - Data validation and quality checks
 
-### Step 2: Exploratory Data Analysis (EDA)
-**File**: `notebooks/02_exploratory_analysis.ipynb`
-
-- Statistical analysis of sensor data
-- Data distribution visualization
-- Correlation analysis between variables
-- Anomaly pattern identification
-
-### Step 3: Feature Engineering & Selection
-**File**: `notebooks/03_feature_engineering.ipynb`
+### Step 2: Feature Engineering
+**File**: `notebooks/feature_engineering_Step2.ipynb`
 
 - Create new features from raw sensor data
 - Feature scaling and normalization
+- Statistical feature extraction
 - Feature importance analysis
 - Select optimal features for model training
 
-### Step 4: Model Training & Validation
-**File**: `notebooks/04_model_training.ipynb`
+### Step 3: Isolation Forest Detection
+**File**: `notebooks/isolation_forest_Step3.ipynb`
 
-- Train supervised learning models
+- Anomaly detection using Isolation Forest algorithm
+- Identify outliers and unusual patterns
+- Generate anomaly scores
+- Validation of detected anomalies
+
+### Step 4: DBSCAN Clustering Analysis
+**File**: `notebooks/dbscan_step4.ipynb`
+
+- Density-Based Spatial Clustering (DBSCAN) analysis
+- Cluster fault patterns and system states
+- Identify fault signatures and clusters
+- Cluster validation and interpretation
+
+### Step 5: XGBoost Classification
+**File**: `notebooks/XGBoost_step5.ipynb`
+
+- Train XGBoost classification model
 - Implement cross-validation strategies
 - Hyperparameter tuning
-- Model comparison and selection
+- Model comparison and performance evaluation
+- Feature importance from XGBoost
 
-### Step 5: Model Evaluation & Optimization
-**File**: `notebooks/05_model_evaluation.ipynb`
+### Step 6: LSTM Time Series Analysis
+**File**: `notebooks/step_6_lstmi.ipynb`
 
-- Evaluate model performance on test data
-- Generate performance metrics and reports
-- Final model optimization
+- Long Short-Term Memory (LSTM) model for time series
+- Sequential pattern detection
+- Predictive maintenance timing using temporal data
 - Model serialization and export
 
 ## Live Monitoring Dashboard
@@ -145,11 +157,12 @@ Execute the notebooks **in order**:
 jupyter notebook
 
 # Then run in sequence:
-# 1. 01_data_collection.ipynb
-# 2. 02_exploratory_analysis.ipynb
-# 3. 03_feature_engineering.ipynb
-# 4. 04_model_training.ipynb
-# 5. 05_model_evaluation.ipynb
+# 1. Sensor_Fault_Labeling_Step1.ipynb
+# 2. feature_engineering_Step2.ipynb
+# 3. isolation_forest_Step3.ipynb
+# 4. dbscan_step4.ipynb
+# 5. XGBoost_step5.ipynb
+# 6. step_6_lstmi.ipynb
 ```
 
 **Important**: Each step depends on outputs from the previous step. Do not skip or reorder steps.
@@ -167,12 +180,12 @@ Navigate to `http://localhost:5000` in your web browser to access the live monit
 
 ## Supervised Learning Algorithms
 
-The project implements the following supervised learning approaches:
+The project implements the following supervised and unsupervised learning approaches:
 
-- **Classification Models**: For fault detection (binary/multi-class)
-- **Regression Models**: For predictive maintenance timing
-- **Ensemble Methods**: Combined models for improved accuracy
-- **Time Series Analysis**: For sequential fault pattern detection
+- **Isolation Forest**: Unsupervised anomaly detection for fault identification
+- **DBSCAN**: Density-based clustering for fault pattern recognition
+- **XGBoost**: Gradient boosting classification for fault prediction
+- **LSTM**: Recurrent neural networks for temporal sequence analysis and predictive maintenance
 
 ## Data Requirements
 
@@ -211,10 +224,10 @@ ALERT_THRESHOLD = 0.7
 ### Pipeline Execution Example
 
 ```python
-# In notebook 04_model_training.ipynb
-from sklearn.ensemble import RandomForestClassifier
+# In notebook XGBoost_step5.ipynb
+from xgboost import XGBClassifier
 
-model = RandomForestClassifier(n_estimators=100)
+model = XGBClassifier(n_estimators=100, max_depth=6)
 model.fit(X_train, y_train)
 ```
 
@@ -233,9 +246,9 @@ def predict():
 
 ### Pipeline Issues
 
-- **Missing Data**: Check `01_data_collection.ipynb` for data source configuration
-- **Feature Errors**: Ensure `03_feature_engineering.ipynb` completed successfully
-- **Model Training Failures**: Verify data quality in step 2 and feature selection in step 3
+- **Missing Data**: Check `Sensor_Fault_Labeling_Step1.ipynb` for data source configuration
+- **Feature Errors**: Ensure `feature_engineering_Step2.ipynb` completed successfully
+- **Model Training Failures**: Verify data quality in step 1 and feature selection in step 2
 
 ### Dashboard Issues
 
@@ -294,6 +307,8 @@ For issues, questions, or suggestions:
 - Supervised Learning for Predictive Maintenance
 - Feature Engineering for Time Series Data
 - Real-time Monitoring System Design
+- XGBoost Documentation
+- LSTM and Recurrent Neural Networks for Time Series
 
 ## Author
 
